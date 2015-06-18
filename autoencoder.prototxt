@@ -1,0 +1,110 @@
+name: "AutoEncoder"
+layer{
+	name: "data"
+	type: "Data"
+	top: "data"
+    top: "label"
+	include {
+		phase: TRAIN
+	}
+    transform_param {
+        scale: 0.00390625
+    }
+	data_param {
+		source: "ilsvrc12_train_lmdb"
+		batch_size: 10
+		backend: LMDB
+	}
+}
+layer {
+	name: "data"
+	type: "Data"
+	top: "data"
+    top: "label"
+	include {
+		phase: TEST
+	}
+    transform_param {
+        scale: 0.00390625
+    }
+	data_param {
+		source: "ilsvrc12_val_lmdb"
+		batch_size: 10
+		backend: LMDB
+	}
+}
+
+#layer {
+#	name: "flatdata"
+#	type: "Flatten"
+#	bottom: "data"
+#	top: "flatdata"
+#}
+layer {
+	name: "encode1"
+	type: "Convolution"
+	bottom: "data"
+	top: "encode1"
+	convolution_param {
+		num_output: 100
+        kernel_h: 38
+        kernel_w: 10
+		weight_filler {
+			type: "xavier"
+		}
+		bias_filler {
+			type: "constant"
+		}
+	}
+}
+layer {
+    name: "pool1"
+    type: "Pooling"
+    bottom: "encode1"
+    top: "pool1"
+    pooling_param {
+        pool: MAX
+        kernel_h: 1
+        kernel_w: 3
+        stride: 2
+    }
+}
+layer {
+	name: "decode1"
+	type: "InnerProduct"
+    bottom: "pool1"
+	top: "decode1"
+	param {
+		lr_mult: 1
+		decay_mult: 1
+	}
+	param {
+		lr_mult: 1
+		decay_mult: 0
+	}
+	inner_product_param {
+		num_output: 1
+		}
+}
+
+layer {
+	name: "decode1neuron"
+	type: "Sigmoid"
+	bottom: "decode1"
+	top: "decode1neuron"
+}
+#layer {
+#	name: "loss"
+#	type: "EuclideanLoss"
+#	bottom: "decode1neuron"
+#	bottom: "flatdata"
+#	top: "l2_error"
+#	loss_weight: 0
+#}
+layer {
+  name: "loss"
+  type: "SoftmaxWithLoss"
+  bottom: "decode1neuron"
+  bottom: "label"
+  top: "loss"
+}
